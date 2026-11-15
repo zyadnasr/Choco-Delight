@@ -105,6 +105,14 @@ export async function saveAddress(token, label, address) {
   return data;
 }
 
+export async function fetchLoyalty(token) {
+  if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
+  const response = await fetch(`${API_BASE}/me/loyalty`, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(data.error || `Loyalty request failed: ${response.status}`); error.status = response.status; if (response.status === 401) clearAuthSession(); throw error; }
+  return data;
+}
+
 export async function fetchAdminDashboard(token) {
   if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
   const response = await fetch(`${API_BASE}/admin/dashboard`, { headers: { Authorization: `Bearer ${token}` } });

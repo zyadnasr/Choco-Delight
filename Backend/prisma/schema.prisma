@@ -52,6 +52,16 @@ model Address {
   @@unique([userId, label])
 }
 
+model LoyaltyConfig {
+  id                  String   @id @default("default")
+  pointsPerUnit       Int      @default(10)
+  rewardThreshold     Int      @default(1500)
+  rewardLabel         String   @default("10% off")
+  freeDeliveryEnabled Boolean  @default(true)
+  memberOffersLabel   String   @default("every month")
+  updatedAt           DateTime @updatedAt
+}
+
 model Category {
   id        String    @id @default(cuid())
   slug      String    @unique

@@ -171,6 +171,19 @@ app.put('/api/me/addresses/:label', auth, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get('/api/me/loyalty', auth, async (req, res, next) => {
+  try {
+    const [summary, config] = await Promise.all([
+      prisma.order.aggregate({ where: { userId: (req as any).user.sub }, _sum: { total: true } }),
+      prisma.loyaltyConfig.findUnique({ where: { id: 'default' } }),
+    ]);
+    if (!config) return res.status(503).json({ error: 'Loyalty program is not configured' });
+    const totalSpent = summary._sum.total || 0;
+    const points = Math.floor(totalSpent / config.pointsPerUnit);
+    res.json({ totalSpent, points, target: config.rewardThreshold, pointsPerUnit: config.pointsPerUnit, rewardLabel: config.rewardLabel, freeDeliveryEnabled: config.freeDeliveryEnabled, memberOffersLabel: config.memberOffersLabel });
+  } catch (error) { next(error); }
+});
+
 app.get('/api/orders', auth, async (req, res, next) => {
   try { const orders = await prisma.order.findMany({ where: { userId: (req as any).user.sub }, include: { items: { include: { product: true } } }, orderBy: { createdAt: 'desc' } }); res.json(orders); } catch (error) { next(error); }
 });
