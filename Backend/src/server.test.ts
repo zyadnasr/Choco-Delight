@@ -124,6 +124,17 @@ test('GET /api/admin/dashboard returns mocked admin metrics and products', async
   }
 });
 
+test('GET /api/admin/customers returns customers without password data', async () => {
+  const originalFindMany = prisma.user.findMany;
+  (prisma.user.findMany as any) = async () => [{ id: 'user-1', name: 'Customer One', email: 'customer@example.com', createdAt: new Date('2026-01-01T00:00:00.000Z'), orders: [{ total: 415 }, { total: 520 }] }];
+  const token = signUser({ id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' });
+  try {
+    const response = await fetch(`${baseUrl}/api/admin/customers`, { headers: { Authorization: `Bearer ${token}` } });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), [{ id: 'user-1', name: 'Customer One', email: 'customer@example.com', createdAt: '2026-01-01T00:00:00.000Z', ordersCount: 2, totalSpent: 935 }]);
+  } finally { (prisma.user.findMany as any) = originalFindMany; }
+});
+
 test('GET /api/admin/orders returns orders for admins', async () => {
   const originalFindMany = prisma.order.findMany;
   (prisma.order.findMany as any) = async () => [{ id: 'order-1', orderNo: 'CD-000001', status: 'PENDING', total: 415, currency: 'EGP', items: [], user: null }];

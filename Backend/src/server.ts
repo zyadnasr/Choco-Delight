@@ -102,6 +102,17 @@ app.get('/api/admin/dashboard', auth, adminAuth, async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get('/api/admin/customers', auth, adminAuth, async (_req, res, next) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { role: 'CUSTOMER' },
+      select: { id: true, name: true, email: true, createdAt: true, orders: { select: { total: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(users.map(({ orders, ...user }) => ({ ...user, ordersCount: orders.length, totalSpent: orders.reduce((sum, order) => sum + order.total, 0) })));
+  } catch (error) { next(error); }
+});
+
 app.get('/api/admin/orders', auth, adminAuth, async (_req, res, next) => {
   try {
     const orders = await prisma.order.findMany({

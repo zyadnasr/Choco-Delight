@@ -128,6 +128,14 @@ export async function fetchAdminDashboard(token) {
   return data;
 }
 
+export async function fetchAdminCustomers(token) {
+  if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
+  const response = await fetch(`${API_BASE}/admin/customers`, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(data.error || `Admin customers request failed: ${response.status}`); error.status = response.status; if (response.status === 401) clearAuthSession(); throw error; }
+  return data;
+}
+
 export async function fetchAdminOrders(token) {
   if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
   const response = await fetch(`${API_BASE}/admin/orders`, { headers: { Authorization: `Bearer ${token}` } });
