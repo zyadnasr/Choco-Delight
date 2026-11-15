@@ -581,6 +581,10 @@ html,body,#root{min-height:100%;margin:0}.splash-screen{min-height:100vh;backgro
 @media(max-width:600px){.admin-table-head{display:none}.admin-section-heading{align-items:flex-start;flex-direction:column;gap:4px}.admin-status{max-width:100px;white-space:normal;text-align:center}}
 .loyalty-page .progress span{width:var(--loyalty-progress,78%)}
 
+/* Cart quantity badge — keep the count on the primary header action. */
+.header-cart{position:relative!important;overflow:visible!important}
+.cart-count-badge{position:absolute;top:-8px;inset-inline-end:-8px;display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border:2px solid var(--bg);border-radius:999px;background:#c79042;color:#17110e;font-size:10px;font-weight:800;line-height:1;box-shadow:0 3px 8px rgba(0,0,0,.28)}
+
 /* Figma Category Browser — English LTR / Light mode */
 .categories-page{max-width:1240px;padding-top:22px}
 .categories-page .categories-intro{max-width:520px;margin:0 0 24px}
