@@ -141,6 +141,28 @@ test('GET /api/admin/customers returns customers without password data', async (
   } finally { (prisma.user.findMany as any) = originalFindMany; }
 });
 
+test('GET /api/admin/loyalty-config returns the live loyalty configuration', async () => {
+  const originalFindUnique = prisma.loyaltyConfig.findUnique;
+  (prisma.loyaltyConfig.findUnique as any) = async () => ({ id: 'default', pointsPerUnit: 10, rewardThreshold: 1500, rewardLabel: '10% off', freeDeliveryEnabled: true, memberOffersLabel: 'every month' });
+  const token = signUser({ id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' });
+  try {
+    const response = await fetch(`${baseUrl}/api/admin/loyalty-config`, { headers: { Authorization: `Bearer ${token}` } });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { id: 'default', pointsPerUnit: 10, rewardThreshold: 1500, rewardLabel: '10% off', freeDeliveryEnabled: true, memberOffersLabel: 'every month' });
+  } finally { (prisma.loyaltyConfig.findUnique as any) = originalFindUnique; }
+});
+
+test('PATCH /api/admin/loyalty-config updates the live loyalty configuration', async () => {
+  const originalUpdate = prisma.loyaltyConfig.update;
+  (prisma.loyaltyConfig.update as any) = async ({ data }: any) => ({ id: 'default', ...data });
+  const token = signUser({ id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' });
+  try {
+    const response = await fetch(`${baseUrl}/api/admin/loyalty-config`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ pointsPerUnit: 20, rewardThreshold: 2000, rewardLabel: '15% off', freeDeliveryEnabled: false, memberOffersLabel: 'monthly perks' }) });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { id: 'default', pointsPerUnit: 20, rewardThreshold: 2000, rewardLabel: '15% off', freeDeliveryEnabled: false, memberOffersLabel: 'monthly perks' });
+  } finally { (prisma.loyaltyConfig.update as any) = originalUpdate; }
+});
+
 test('GET /api/admin/orders returns orders for admins', async () => {
   const originalFindMany = prisma.order.findMany;
   (prisma.order.findMany as any) = async () => [{ id: 'order-1', orderNo: 'CD-000001', status: 'PENDING', total: 415, currency: 'EGP', items: [], user: null }];

@@ -125,6 +125,22 @@ app.get('/api/admin/customers', auth, adminAuth, async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get('/api/admin/loyalty-config', auth, adminAuth, async (_req, res, next) => {
+  try {
+    const config = await prisma.loyaltyConfig.findUnique({ where: { id: 'default' } });
+    if (!config) return res.status(404).json({ error: 'Loyalty configuration not found' });
+    res.json(config);
+  } catch (error) { next(error); }
+});
+
+app.patch('/api/admin/loyalty-config', auth, adminAuth, async (req, res, next) => {
+  try {
+    const input = z.object({ pointsPerUnit: z.number().int().positive(), rewardThreshold: z.number().int().positive(), rewardLabel: z.string().min(1).max(80), freeDeliveryEnabled: z.boolean(), memberOffersLabel: z.string().min(1).max(80) }).parse(req.body);
+    const config = await prisma.loyaltyConfig.update({ where: { id: 'default' }, data: input });
+    res.json(config);
+  } catch (error) { next(error); }
+});
+
 app.get('/api/admin/orders', auth, adminAuth, async (_req, res, next) => {
   try {
     const orders = await prisma.order.findMany({

@@ -136,6 +136,22 @@ export async function fetchAdminCustomers(token) {
   return data;
 }
 
+export async function fetchAdminLoyaltyConfig(token) {
+  if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
+  const response = await fetch(`${API_BASE}/admin/loyalty-config`, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(data.error || `Admin loyalty request failed: ${response.status}`); error.status = response.status; if (response.status === 401) clearAuthSession(); throw error; }
+  return data;
+}
+
+export async function updateAdminLoyaltyConfig(token, config) {
+  if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
+  const response = await fetch(`${API_BASE}/admin/loyalty-config`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(config) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(data.error || `Admin loyalty update failed: ${response.status}`); error.status = response.status; if (response.status === 401) clearAuthSession(); throw error; }
+  return data;
+}
+
 export async function fetchAdminOrders(token) {
   if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
   const response = await fetch(`${API_BASE}/admin/orders`, { headers: { Authorization: `Bearer ${token}` } });
