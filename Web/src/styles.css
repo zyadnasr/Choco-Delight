@@ -417,6 +417,7 @@ html,body,#root{min-height:100%;margin:0}.splash-screen{min-height:100vh;backgro
 .theme-dark .order-status-banner{background:#203328;border-color:#47694e}
 .order-status-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#4d8a5a;color:#fff;font-weight:800;flex:none}
 .order-status-banner.delivered .order-status-icon{background:#2f7b49}
+.order-status-banner.shipped{background:#dceef0;border-color:#9bc4c9}.order-status-banner.shipped .order-status-icon{background:#39727a}
 .order-status-banner b{font-size:15px}
 .order-status-banner p{margin:5px 0 0;color:var(--muted);font-size:13px}
 .order-details-page .order-meta{margin:22px 0 16px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
