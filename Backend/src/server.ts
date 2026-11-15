@@ -83,7 +83,7 @@ app.post('/api/auth/register', async (req, res, next) => {
   try {
     const input = z.object({ name: z.string().min(2), email: z.string().email(), password: z.string().min(8) }).parse(req.body);
     const passwordHash = await bcrypt.hash(input.password, 10);
-    const user = await prisma.user.create({ data: { ...input, passwordHash }, select: { id: true, name: true, email: true, role: true } });
+    const user = await prisma.user.create({ data: { name: input.name, email: input.email, passwordHash }, select: { id: true, name: true, email: true, role: true } });
     res.status(201).json({ user, token: signUser(user) });
   } catch (error: any) { if (error?.code === 'P2002') return res.status(409).json({ error: 'Email already exists' }); next(error); }
 });
