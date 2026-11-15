@@ -139,6 +139,22 @@ app.post('/api/auth/login', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get('/api/me/preferences', auth, async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: (req as any).user.sub }, select: { language: true, theme: true, notifications: true } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (error) { next(error); }
+});
+
+app.patch('/api/me/preferences', auth, async (req, res, next) => {
+  try {
+    const input = z.object({ language: z.enum(['en', 'ar']).optional(), theme: z.enum(['light', 'dark']).optional(), notifications: z.boolean().optional() }).refine((value) => Object.keys(value).length > 0).parse(req.body);
+    const user = await prisma.user.update({ where: { id: (req as any).user.sub }, data: input, select: { language: true, theme: true, notifications: true } });
+    res.json(user);
+  } catch (error) { next(error); }
+});
+
 app.get('/api/orders', auth, async (req, res, next) => {
   try { const orders = await prisma.order.findMany({ where: { userId: (req as any).user.sub }, include: { items: { include: { product: true } } }, orderBy: { createdAt: 'desc' } }); res.json(orders); } catch (error) { next(error); }
 });
