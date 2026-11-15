@@ -59,6 +59,14 @@ app.get('/api/catalog', async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get('/api/checkout/config', async (_req, res, next) => {
+  try {
+    const config = await prisma.deliveryConfig.findUnique({ where: { id: 'default' } });
+    if (!config || !config.cashOnDeliveryEnabled) return res.status(503).json({ error: 'Checkout is not currently available' });
+    res.json({ deliveryFee: config.deliveryFee, freeDeliveryThreshold: config.freeDeliveryThreshold, paymentMethods: [{ id: 'CASH_ON_DELIVERY', label: 'Cash on delivery' }] });
+  } catch (error) { next(error); }
+});
+
 app.get('/api/products/:slug', async (req, res, next) => {
   try {
     const product = await prisma.product.findUnique({ where: { slug: req.params.slug }, include: { category: true, maker: true } });
@@ -190,14 +198,17 @@ app.get('/api/orders', auth, async (req, res, next) => {
 
 app.post('/api/orders', optionalAuth, async (req, res, next) => {
   try {
-    const input = z.object({ address: z.string().min(5), items: z.array(z.object({ productId: z.string(), quantity: z.number().int().positive() })).min(1) }).parse(req.body);
+    const input = z.object({ address: z.string().min(5), paymentMethod: z.enum(['CASH_ON_DELIVERY']).default('CASH_ON_DELIVERY'), items: z.array(z.object({ productId: z.string(), quantity: z.number().int().positive() })).min(1) }).parse(req.body);
+    const deliveryConfig = await prisma.deliveryConfig.findUnique({ where: { id: 'default' } });
+    if (!deliveryConfig || !deliveryConfig.cashOnDeliveryEnabled) return res.status(503).json({ error: 'Checkout is not currently available' });
     const productKeys = input.items.map((item) => item.productId);
     const products = await prisma.product.findMany({ where: { active: true, OR: [{ id: { in: productKeys } }, { slug: { in: productKeys } }] } });
     const byKey = new Map(products.flatMap((product) => [[product.id, product], [product.slug, product]]));
     const lineItems = input.items.map((item) => ({ ...item, product: byKey.get(item.productId) })).filter((item) => item.product);
     if (lineItems.length !== input.items.length) return res.status(400).json({ error: 'One or more products are unavailable' });
     const total = lineItems.reduce((sum, item) => sum + item.product!.price * item.quantity, 0);
-    const order = await prisma.order.create({ data: { orderNo: `CD-${Date.now().toString().slice(-6)}`, userId: (req as any).user?.sub ?? null, address: input.address, total, items: { create: lineItems.map((item) => ({ productId: item.product!.id, quantity: item.quantity, unitPrice: item.product!.price })) } }, include: { items: { include: { product: true } } } });
+    const deliveryFee = deliveryConfig.freeDeliveryThreshold !== null && total >= deliveryConfig.freeDeliveryThreshold ? 0 : deliveryConfig.deliveryFee;
+    const order = await prisma.order.create({ data: { orderNo: `CD-${Date.now().toString().slice(-6)}`, userId: (req as any).user?.sub ?? null, address: input.address, paymentMethod: input.paymentMethod, deliveryFee, total: total + deliveryFee, items: { create: lineItems.map((item) => ({ productId: item.product!.id, quantity: item.quantity, unitPrice: item.product!.price })) } }, include: { items: { include: { product: true } } } });
     res.status(201).json(order);
   } catch (error) { next(error); }
 });

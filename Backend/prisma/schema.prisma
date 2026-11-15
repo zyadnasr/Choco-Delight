@@ -22,6 +22,10 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+}
+
 model User {
   id           String    @id @default(cuid())
   name         String
@@ -60,6 +64,14 @@ model LoyaltyConfig {
   freeDeliveryEnabled Boolean  @default(true)
   memberOffersLabel   String   @default("every month")
   updatedAt           DateTime @updatedAt
+}
+
+model DeliveryConfig {
+  id                    String   @id @default("default")
+  deliveryFee           Int      @default(0)
+  freeDeliveryThreshold Int?
+  cashOnDeliveryEnabled Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
 }
 
 model Category {
@@ -111,6 +123,8 @@ model Order {
   status     OrderStatus @default(PENDING)
   total      Int
   currency   String      @default("EGP")
+  paymentMethod PaymentMethod @default(CASH_ON_DELIVERY)
+  deliveryFee Int         @default(0)
   address    String?
   items      OrderItem[]
   createdAt  DateTime    @default(now())

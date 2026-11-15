@@ -113,6 +113,13 @@ export async function fetchLoyalty(token) {
   return data;
 }
 
+export async function fetchCheckoutConfig() {
+  const response = await fetch(`${API_BASE}/checkout/config`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `Checkout config request failed: ${response.status}`);
+  return data;
+}
+
 export async function fetchAdminDashboard(token) {
   if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
   const response = await fetch(`${API_BASE}/admin/dashboard`, { headers: { Authorization: `Bearer ${token}` } });
@@ -141,14 +148,14 @@ export async function updateAdminOrderStatus(token, orderId, status) {
   return data;
 }
 
-export async function createOrder(token, address, items) {
+export async function createOrder(token, address, items, paymentMethod = 'CASH_ON_DELIVERY') {
   if (token && isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${API_BASE}/orders`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ address, items }),
+    body: JSON.stringify({ address, items, paymentMethod }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) { const error = new Error(data.error || `Order request failed: ${response.status}`); error.status = response.status; if (response.status === 401) clearAuthSession(); throw error; }

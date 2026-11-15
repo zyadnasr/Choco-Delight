@@ -208,8 +208,10 @@ test('POST /api/auth/login validates email before database access', async () => 
 test('POST /api/orders creates an order from a slug without touching the real database', async () => {
   const originalProductFindMany = prisma.product.findMany;
   const originalOrderCreate = prisma.order.create;
+  const originalDeliveryFindUnique = prisma.deliveryConfig.findUnique;
   let createInput: any;
   (prisma.product.findMany as any) = async () => [{ id: 'product-1', slug: 'dark-70', price: 415, active: true }];
+  (prisma.deliveryConfig.findUnique as any) = async () => ({ deliveryFee: 0, freeDeliveryThreshold: null, cashOnDeliveryEnabled: true });
   (prisma.order.create as any) = async ({ data }: any) => { createInput = data; return { id: 'order-test', orderNo: 'CD-TEST', total: 830, address: data.address, userId: data.userId, items: [{ productId: 'product-1', quantity: 2, unitPrice: 415 }] }; };
   const token = signUser({ id: 'user-1', role: 'CUSTOMER', email: 'test@example.com' });
   try {
@@ -221,14 +223,17 @@ test('POST /api/orders creates an order from a slug without touching the real da
   } finally {
     (prisma.product.findMany as any) = originalProductFindMany;
     (prisma.order.create as any) = originalOrderCreate;
+    (prisma.deliveryConfig.findUnique as any) = originalDeliveryFindUnique;
   }
 });
 
 test('POST /api/orders allows guest checkout without authentication', async () => {
   const originalProductFindMany = prisma.product.findMany;
   const originalOrderCreate = prisma.order.create;
+  const originalDeliveryFindUnique = prisma.deliveryConfig.findUnique;
   let createInput: any;
   (prisma.product.findMany as any) = async () => [{ id: 'product-1', slug: 'dark-70', price: 415, active: true }];
+  (prisma.deliveryConfig.findUnique as any) = async () => ({ deliveryFee: 0, freeDeliveryThreshold: null, cashOnDeliveryEnabled: true });
   (prisma.order.create as any) = async ({ data }: any) => { createInput = data; return { id: 'guest-order-test', orderNo: 'CD-GUEST', total: 415, address: data.address, userId: data.userId, items: [] }; };
   try {
     const response = await fetch(`${baseUrl}/api/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: 'Riyadh, Al Narjis', items: [{ productId: 'dark-70', quantity: 1 }] }) });
@@ -238,5 +243,6 @@ test('POST /api/orders allows guest checkout without authentication', async () =
   } finally {
     (prisma.product.findMany as any) = originalProductFindMany;
     (prisma.order.create as any) = originalOrderCreate;
+    (prisma.deliveryConfig.findUnique as any) = originalDeliveryFindUnique;
   }
 });
