@@ -128,6 +128,29 @@ test('POST /api/auth/register validates input before database access', async () 
   });
 });
 
+test('POST /api/auth/register stores only a password hash', async () => {
+  const originalUserCreate = prisma.user.create;
+  let createInput: any;
+  (prisma.user.create as any) = async ({ data }: any) => {
+    createInput = data;
+    return { id: 'user-test', name: data.name, email: data.email, role: 'CUSTOMER' };
+  };
+  try {
+    const response = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Test User', email: 'register-test@example.com', password: 'safe-password-123' }),
+    });
+    assert.equal(response.status, 201);
+    assert.equal(createInput.name, 'Test User');
+    assert.equal(createInput.email, 'register-test@example.com');
+    assert.equal(typeof createInput.passwordHash, 'string');
+    assert.equal('password' in createInput, false);
+  } finally {
+    (prisma.user.create as any) = originalUserCreate;
+  }
+});
+
 test('POST /api/auth/login validates email before database access', async () => {
   const response = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
