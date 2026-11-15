@@ -83,6 +83,26 @@ export async function fetchAdminDashboard(token) {
   return data;
 }
 
+export async function fetchAdminOrders(token) {
+  if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
+  const response = await fetch(`${API_BASE}/admin/orders`, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(data.error || `Admin orders request failed: ${response.status}`); error.status = response.status; if (response.status === 401) clearAuthSession(); throw error; }
+  return data;
+}
+
+export async function updateAdminOrderStatus(token, orderId, status) {
+  if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
+  const response = await fetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderId)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(data.error || `Admin order update failed: ${response.status}`); error.status = response.status; if (response.status === 401) clearAuthSession(); throw error; }
+  return data;
+}
+
 export async function createOrder(token, address, items) {
   if (token && isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
   const headers = { 'Content-Type': 'application/json' };

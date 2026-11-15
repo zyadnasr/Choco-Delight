@@ -99,6 +99,28 @@ test('GET /api/admin/dashboard returns mocked admin metrics and products', async
   }
 });
 
+test('GET /api/admin/orders returns orders for admins', async () => {
+  const originalFindMany = prisma.order.findMany;
+  (prisma.order.findMany as any) = async () => [{ id: 'order-1', orderNo: 'CD-000001', status: 'PENDING', total: 415, currency: 'EGP', items: [], user: null }];
+  const token = signUser({ id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' });
+  try {
+    const response = await fetch(`${baseUrl}/api/admin/orders`, { headers: { Authorization: `Bearer ${token}` } });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), [{ id: 'order-1', orderNo: 'CD-000001', status: 'PENDING', total: 415, currency: 'EGP', items: [], user: null }]);
+  } finally { (prisma.order.findMany as any) = originalFindMany; }
+});
+
+test('PATCH /api/admin/orders/:id/status updates an order status for admins', async () => {
+  const originalUpdate = prisma.order.update;
+  (prisma.order.update as any) = async ({ where, data }: any) => ({ id: where.id, orderNo: 'CD-000001', status: data.status, total: 415, currency: 'EGP', items: [], user: null });
+  const token = signUser({ id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' });
+  try {
+    const response = await fetch(`${baseUrl}/api/admin/orders/order-1/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ status: 'SHIPPED' }) });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { id: 'order-1', orderNo: 'CD-000001', status: 'SHIPPED', total: 415, currency: 'EGP', items: [], user: null });
+  } finally { (prisma.order.update as any) = originalUpdate; }
+});
+
 test('GET /api/orders rejects requests without authentication', async () => {
   const response = await fetch(`${baseUrl}/api/orders`);
   assert.equal(response.status, 401);

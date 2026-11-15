@@ -79,6 +79,32 @@ app.get('/api/admin/dashboard', auth, adminAuth, async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get('/api/admin/orders', auth, adminAuth, async (_req, res, next) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: { user: { select: { name: true, email: true } }, items: { include: { product: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(orders);
+  } catch (error) { next(error); }
+});
+
+app.patch('/api/admin/orders/:id/status', auth, adminAuth, async (req, res, next) => {
+  try {
+    const input = z.object({ status: z.enum(['PENDING', 'CONFIRMED', 'PREPARING', 'SHIPPED', 'DELIVERED', 'CANCELLED']) }).parse(req.body);
+    const orderId = String(req.params.id);
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: { status: input.status },
+      include: { user: { select: { name: true, email: true } }, items: { include: { product: true } } },
+    });
+    res.json(order);
+  } catch (error: any) {
+    if (error?.code === 'P2025') return res.status(404).json({ error: 'Order not found' });
+    next(error);
+  }
+});
+
 app.post('/api/auth/register', async (req, res, next) => {
   try {
     const input = z.object({ name: z.string().min(2), email: z.string().email(), password: z.string().min(8) }).parse(req.body);
