@@ -53,7 +53,7 @@ app.get('/api/catalog', async (_req, res, next) => {
   try {
     const [categories, products] = await Promise.all([
       prisma.category.findMany({ orderBy: { name: 'asc' } }),
-      prisma.product.findMany({ where: { active: true }, include: { category: true }, orderBy: { createdAt: 'asc' } }),
+      prisma.product.findMany({ where: { active: true }, include: { category: true, maker: true }, orderBy: { createdAt: 'asc' } }),
     ]);
     res.json({ categories, products });
   } catch (error) { next(error); }
@@ -61,9 +61,24 @@ app.get('/api/catalog', async (_req, res, next) => {
 
 app.get('/api/products/:slug', async (req, res, next) => {
   try {
-    const product = await prisma.product.findUnique({ where: { slug: req.params.slug }, include: { category: true } });
+    const product = await prisma.product.findUnique({ where: { slug: req.params.slug }, include: { category: true, maker: true } });
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(product);
+  } catch (error) { next(error); }
+});
+
+app.get('/api/makers', async (_req, res, next) => {
+  try {
+    const makers = await prisma.maker.findMany({ include: { products: { where: { active: true }, include: { category: true }, orderBy: { createdAt: 'asc' } } }, orderBy: { name: 'asc' } });
+    res.json(makers);
+  } catch (error) { next(error); }
+});
+
+app.get('/api/makers/:slug', async (req, res, next) => {
+  try {
+    const maker = await prisma.maker.findUnique({ where: { slug: req.params.slug }, include: { products: { where: { active: true }, include: { category: true }, orderBy: { createdAt: 'asc' } } } });
+    if (!maker) return res.status(404).json({ error: 'Maker not found' });
+    res.json(maker);
   } catch (error) { next(error); }
 });
 

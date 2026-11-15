@@ -15,6 +15,11 @@ async function main() {
     const saved = await prisma.category.upsert({ where: { slug: category.slug }, update: category, create: category });
     categoryMap.set(category.slug, saved.id);
   }
+  const maker = await prisma.maker.upsert({
+    where: { slug: 'choco-delight' },
+    update: { name: 'Choco Delight', tagline: 'Premium wholesale chocolate maker', description: 'Small-batch chocolate made with thoughtful ingredients for gifting, everyday moments, and retail partners.', image: 'chocolate-product-source.jpg', rating: 4.8 },
+    create: { slug: 'choco-delight', name: 'Choco Delight', tagline: 'Premium wholesale chocolate maker', description: 'Small-batch chocolate made with thoughtful ingredients for gifting, everyday moments, and retail partners.', image: 'chocolate-product-source.jpg', rating: 4.8 },
+  });
   const products = [
     ['dark-70', 'dark-bars', '70% Dark Chocolate Bars', 415, 500, 'chocolate-product-source.jpg', 4.8, '70%'],
     ['sea-salt', 'dark-bars', 'Sea Salt Dark Chocolate', 440, null, 'dark-bars.png', 4.8, '72%'],
@@ -23,7 +28,7 @@ async function main() {
     ['gift-box', 'gifts', 'Gift box', 440, null, 'gift-box.png', 4.8, '70%'],
   ] as const;
   for (const [slug, category, title, price, compareAt, image, rating, cocoa] of products) {
-    await prisma.product.upsert({ where: { slug }, update: { title, price, compareAt, image, rating, cocoa, categoryId: categoryMap.get(category)! }, create: { slug, title, price, compareAt, image, rating, cocoa, categoryId: categoryMap.get(category)! } });
+    await prisma.product.upsert({ where: { slug }, update: { title, price, compareAt, image, rating, cocoa, categoryId: categoryMap.get(category)!, makerId: maker.id }, create: { slug, title, price, compareAt, image, rating, cocoa, categoryId: categoryMap.get(category)!, makerId: maker.id } });
   }
   const passwordHash = await bcrypt.hash('ChangeMe123!', 10);
   await prisma.user.upsert({ where: { email: 'admin@chocodelight.local' }, update: {}, create: { name: 'Choco Delight Admin', email: 'admin@chocodelight.local', passwordHash, role: 'ADMIN' } });

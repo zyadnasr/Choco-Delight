@@ -48,6 +48,18 @@ export async function fetchProduct(slug) {
   return response.json();
 }
 
+export async function fetchMakers() {
+  const response = await fetch(`${API_BASE}/makers`);
+  if (!response.ok) throw new Error(`Makers request failed: ${response.status}`);
+  return response.json();
+}
+
+export async function fetchMaker(slug) {
+  const response = await fetch(`${API_BASE}/makers/${encodeURIComponent(slug)}`);
+  if (!response.ok) throw new Error(`Maker request failed: ${response.status}`);
+  return response.json();
+}
+
 async function authRequest(path, payload) {
   const response = await fetch(`${API_BASE}${path}`, {
     method: 'POST',

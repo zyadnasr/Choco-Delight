@@ -67,6 +67,26 @@ test('GET /api/products/:slug returns 404 for an unknown slug', async () => {
   }
 });
 
+test('GET /api/makers returns database-backed makers with active products', async () => {
+  const originalFindMany = prisma.maker.findMany;
+  (prisma.maker.findMany as any) = async () => [{ id: 'maker-1', slug: 'choco-delight', name: 'Choco Delight', rating: 4.8, products: [{ id: 'product-1', title: '70% Dark Chocolate Bars', active: true }] }];
+  try {
+    const response = await fetch(`${baseUrl}/api/makers`);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), [{ id: 'maker-1', slug: 'choco-delight', name: 'Choco Delight', rating: 4.8, products: [{ id: 'product-1', title: '70% Dark Chocolate Bars', active: true }] }]);
+  } finally { (prisma.maker.findMany as any) = originalFindMany; }
+});
+
+test('GET /api/makers/:slug returns 404 for an unknown maker', async () => {
+  const originalFindUnique = prisma.maker.findUnique;
+  (prisma.maker.findUnique as any) = async () => null;
+  try {
+    const response = await fetch(`${baseUrl}/api/makers/unknown-maker`);
+    assert.equal(response.status, 404);
+    assert.deepEqual(await response.json(), { error: 'Maker not found' });
+  } finally { (prisma.maker.findUnique as any) = originalFindUnique; }
+});
+
 test('GET /api/admin/dashboard rejects non-admin users', async () => {
   const token = signUser({ id: 'user-1', role: 'CUSTOMER', email: 'customer@example.com' });
   const response = await fetch(`${baseUrl}/api/admin/dashboard`, { headers: { Authorization: `Bearer ${token}` } });
