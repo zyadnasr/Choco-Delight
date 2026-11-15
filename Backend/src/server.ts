@@ -28,10 +28,11 @@ if (process.env.NODE_ENV !== 'test' && (!jwtSecret || jwtSecret.length < 32)) {
 }
 
 const signingSecret = jwtSecret || 'test-only-secret';
-const allowedOrigins = (process.env.WEB_ORIGINS || process.env.WEB_ORIGIN || 'http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:4173')
+const configuredOrigins = (process.env.WEB_ORIGINS || process.env.WEB_ORIGIN || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedOrigins = Array.from(new Set(['https://choco-delight-web.vercel.app', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://127.0.0.1:4173', ...configuredOrigins]));
 
 app.use(cors({ origin: (origin, callback) => { if (!origin || allowedOrigins.includes(origin)) return callback(null, true); return callback(new Error('Origin not allowed by CORS')); } }));
 app.use(express.json());

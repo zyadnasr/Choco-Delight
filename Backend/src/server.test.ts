@@ -25,6 +25,12 @@ test('GET /api/health returns a healthy service response', async () => {
   assert.deepEqual(await response.json(), { ok: true, service: 'choco-delight-api' });
 });
 
+test('CORS allows the production web origin', async () => {
+  const response = await fetch(`${baseUrl}/api/health`, { headers: { Origin: 'https://choco-delight-web.vercel.app' } });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('access-control-allow-origin'), 'https://choco-delight-web.vercel.app');
+});
+
 test('GET /api/catalog returns active catalog data', async () => {
   const originalCategoryFindMany = prisma.category.findMany;
   const originalProductFindMany = prisma.product.findMany;
