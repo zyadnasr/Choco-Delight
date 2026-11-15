@@ -128,6 +128,22 @@ app.patch('/api/admin/orders/:id/status', auth, adminAuth, async (req, res, next
   }
 });
 
+app.get('/api/admin/delivery-policy', auth, adminAuth, async (_req, res, next) => {
+  try {
+    const policy = await prisma.deliveryConfig.findUnique({ where: { id: 'default' } });
+    if (!policy) return res.status(404).json({ error: 'Delivery policy not found' });
+    res.json(policy);
+  } catch (error) { next(error); }
+});
+
+app.patch('/api/admin/delivery-policy', auth, adminAuth, async (req, res, next) => {
+  try {
+    const input = z.object({ deliveryFee: z.number().int().nonnegative(), freeDeliveryThreshold: z.number().int().nonnegative().nullable(), cashOnDeliveryEnabled: z.boolean() }).parse(req.body);
+    const policy = await prisma.deliveryConfig.update({ where: { id: 'default' }, data: input });
+    res.json(policy);
+  } catch (error) { next(error); }
+});
+
 app.post('/api/auth/register', async (req, res, next) => {
   try {
     const input = z.object({ name: z.string().min(2), email: z.string().email(), password: z.string().min(8) }).parse(req.body);

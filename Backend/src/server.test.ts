@@ -100,6 +100,11 @@ test('GET /api/admin/dashboard rejects unauthenticated requests', async () => {
   assert.deepEqual(await response.json(), { error: 'Authentication required' });
 });
 
+test('GET /api/admin/delivery-policy rejects unauthenticated requests', async () => {
+  const response = await fetch(`${baseUrl}/api/admin/delivery-policy`);
+  assert.equal(response.status, 401);
+});
+
 test('GET /api/admin/dashboard returns mocked admin metrics and products', async () => {
   const originals = { countProduct: prisma.product.count, countOrder: prisma.order.count, aggregate: prisma.order.aggregate, findMany: prisma.product.findMany };
   (prisma.product.count as any) = async () => 5;

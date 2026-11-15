@@ -148,6 +148,22 @@ export async function updateAdminOrderStatus(token, orderId, status) {
   return data;
 }
 
+export async function fetchAdminDeliveryPolicy(token) {
+  if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
+  const response = await fetch(`${API_BASE}/admin/delivery-policy`, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(data.error || `Delivery policy request failed: ${response.status}`); error.status = response.status; if (response.status === 401) clearAuthSession(); throw error; }
+  return data;
+}
+
+export async function updateAdminDeliveryPolicy(token, policy) {
+  if (isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
+  const response = await fetch(`${API_BASE}/admin/delivery-policy`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(policy) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(data.error || `Delivery policy update failed: ${response.status}`); error.status = response.status; if (response.status === 401) clearAuthSession(); throw error; }
+  return data;
+}
+
 export async function createOrder(token, address, items, paymentMethod = 'CASH_ON_DELIVERY') {
   if (token && isExpired(token)) { clearAuthSession(); const error = new Error('Invalid or expired token'); error.status = 401; throw error; }
   const headers = { 'Content-Type': 'application/json' };
