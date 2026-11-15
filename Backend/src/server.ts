@@ -155,6 +155,22 @@ app.patch('/api/me/preferences', auth, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get('/api/me/addresses', auth, async (req, res, next) => {
+  try {
+    const addresses = await prisma.address.findMany({ where: { userId: (req as any).user.sub }, orderBy: { updatedAt: 'desc' } });
+    res.json(addresses);
+  } catch (error) { next(error); }
+});
+
+app.put('/api/me/addresses/:label', auth, async (req, res, next) => {
+  try {
+    const label = z.string().min(1).max(32).parse(req.params.label);
+    const input = z.object({ city: z.string().min(1), street: z.string().min(1), building: z.string().optional(), details: z.string().optional() }).parse(req.body);
+    const address = await prisma.address.upsert({ where: { userId_label: { userId: (req as any).user.sub, label } }, create: { userId: (req as any).user.sub, label, ...input }, update: input });
+    res.json(address);
+  } catch (error) { next(error); }
+});
+
 app.get('/api/orders', auth, async (req, res, next) => {
   try { const orders = await prisma.order.findMany({ where: { userId: (req as any).user.sub }, include: { items: { include: { product: true } } }, orderBy: { createdAt: 'desc' } }); res.json(orders); } catch (error) { next(error); }
 });
