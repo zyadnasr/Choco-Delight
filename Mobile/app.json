@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Choco Delight",
+    "slug": "choco-delight-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"]
+  }
+}

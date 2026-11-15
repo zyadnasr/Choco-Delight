@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+node_modules/
+work/
+dist/
+Web/.cache-postcss/
+Mobile/.expo/
+Backend/prisma/*.db
+Backend/prisma/*.db-journal
