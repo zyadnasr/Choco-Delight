@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 node_modules/
+.vercel/
 work/
 dist/
 Web/.cache-postcss/
