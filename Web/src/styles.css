@@ -581,6 +581,7 @@ html,body,#root{min-height:100%;margin:0}.splash-screen{min-height:100vh;backgro
 @media(max-width:600px){.admin-table-head{display:none}.admin-section-heading{align-items:flex-start;flex-direction:column;gap:4px}.admin-status{max-width:100px;white-space:normal;text-align:center}}
 .page-admin{background:#faf5ed;color:#29150e}
 .page-admin .shell{max-width:none;padding:0}
+.theme-light.page-admin .shell,.theme-dark.page-admin .shell{padding:0}
 .admin-figma-page{min-height:100vh;background:#faf5ed;color:#29150e;font-size:12px}
 .admin-figma-topbar{height:62px;background:#4b291e;color:#fff8ef;display:flex;align-items:center;gap:12px;padding:0 clamp(24px,5vw,72px)}
 .admin-figma-topbar b{font-size:17px}.admin-figma-topbar span{margin-inline-start:auto;font-size:10px;opacity:.72}.admin-figma-back{border:0;background:transparent;color:#fff8ef;font-size:27px;line-height:1;cursor:pointer;transform:scaleX(1)}
