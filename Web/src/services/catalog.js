@@ -1,5 +1,3 @@
-import { catalog } from '../data/catalog';
-
 const CART_KEY = 'choco-delight-cart-v1';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:4000/api';
 const TOKEN_KEY = 'choco-delight-token-v1';
@@ -22,18 +20,6 @@ function isExpired(token) {
 
 export function isAuthTokenExpired(token) {
   return isExpired(token);
-}
-
-export function getCatalog() {
-  return catalog;
-}
-
-export function getProduct(id) {
-  return catalog.products.find((product) => product.id === id) || null;
-}
-
-export function getProductsByCategory(categoryId) {
-  return catalog.products.filter((product) => product.category === categoryId);
 }
 
 export async function fetchCatalog() {
