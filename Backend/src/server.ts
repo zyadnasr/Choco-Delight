@@ -8,6 +8,7 @@ import { PrismaClient } from '@prisma/client';
 
 export const prisma = new PrismaClient();
 export const app = express();
+export default app;
 const port = Number(process.env.PORT || 4000);
 const jwtSecret = process.env.JWT_SECRET;
 
