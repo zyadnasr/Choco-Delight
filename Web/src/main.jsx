@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { clearAuthSession, createOrder, fetchAdminDashboard, fetchCatalog, fetchOrders, fetchProduct, getCatalog, getProduct, isAuthTokenExpired, loadAuthSession, loadCartItems, loadGuestOrder, loginUser, registerUser, saveAuthSession, saveCartItems, saveGuestOrder } from './services/catalog';
@@ -8,13 +8,37 @@ const catalog = getCatalog();
 const categories = catalog.categories.map(({ name, image, count }) => [name, image, `${count} products`]);
 const arCopy = { eyebrow: 'حلاوة صغيرة، توصلك لحد عندك', heroTitle: 'إيه نفسك فيه النهارده؟', heroCopy: 'شوكولاتة مصنوعة على دفعات صغيرة، هدايا مختارة، وحلاوة يومية للمشاركة.', browse: 'تصفح التصنيفات', best: 'اكتشف الأكثر مبيعًا ↗', categoryTitle: 'بتدور على أي تصنيف؟', viewAll: 'عرض الكل ↗', products: 'منتجات', customers: 'عميل', satisfaction: 'نسبة الرضا', offers: 'عروض الصانع', pending: 'في انتظار موافقة المالك', minimum: 'الحد الأدنى للطلب قيد المراجعة.', sales: 'الأكثر مبيعًا' };
 
+const routePaths = {
+  home: '/', categories: '/categories', 'category-products': '/categories/products', 'category-browser': '/gifts',
+  product: '/products', cart: '/cart', checkout: '/checkout', address: '/checkout/address', payment: '/checkout/payment',
+  'sign-in-email': '/sign-in', 'sign-in-phone': '/sign-in/phone', 'create-account': '/create-account', orders: '/orders',
+  'order-details': '/orders/details', account: '/account', settings: '/settings', loyalty: '/loyalty',
+  'maker-collections': '/makers', 'maker-details': '/makers/details', 'order-received': '/order-received', admin: '/admin',
+};
+
+function routeFromLocation() {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/') return { page: 'home' };
+  if (path.startsWith('/products/')) return { page: 'product', slug: decodeURIComponent(path.slice('/products/'.length)) || 'dark-70' };
+  if (path.startsWith('/orders/') && path !== '/orders/details') return { page: 'order-details' };
+  const match = Object.entries(routePaths).find(([, route]) => route === path);
+  return match ? { page: match[0] } : { page: 'home' };
+}
+
+function pathForPage(page, options = {}) {
+  if (page === 'product') return `${routePaths.product}/${encodeURIComponent(options.slug || 'dark-70')}`;
+  if (page === 'order-details' && options.orderId) return `${routePaths.orders}/${encodeURIComponent(options.orderId)}`;
+  return routePaths[page] || routePaths.home;
+}
+
 function App() {
   const [dark, setDark] = useState(() => window.localStorage.getItem('choco-delight-theme-v1') === 'dark');
   const [rtl, setRtl] = useState(() => window.localStorage.getItem('choco-delight-language-v1') === 'ar');
-  const [page, setPage] = useState('home');
+  const initialRoute = useMemo(routeFromLocation, []);
+  const [page, setPage] = useState(initialRoute.page);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [guestOrder, setGuestOrder] = useState(loadGuestOrder);
-  const [selectedProductSlug, setSelectedProductSlug] = useState('dark-70');
+  const [selectedProductSlug, setSelectedProductSlug] = useState(initialRoute.slug || 'dark-70');
   const [cartItems, setCartItems] = useState(loadCartItems);
   const [apiCatalog, setApiCatalog] = useState(null);
   const [authSession, setAuthSession] = useState(loadAuthSession);
@@ -23,8 +47,16 @@ function App() {
   const theme = useMemo(() => dark ? 'theme-dark' : 'theme-light', [dark]);
   const copy = rtl ? arCopy : null;
   const cart = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const openProduct = (slug = 'dark-70') => { setSelectedProductSlug(slug); setPage('product'); };
-  const expireSession = () => { clearAuthSession(); setAuthSession(null); setPage('sign-in-email'); };
+  const navigate = useCallback((nextPage, options = {}, replace = false) => {
+    const nextPath = pathForPage(nextPage, options);
+    if (window.location.pathname !== nextPath) {
+      window.history[replace ? 'replaceState' : 'pushState']({}, '', nextPath);
+    }
+    if (options.slug) setSelectedProductSlug(options.slug);
+    setPage(nextPage);
+  }, []);
+  const openProduct = (slug = 'dark-70') => navigate('product', { slug });
+  const expireSession = () => { clearAuthSession(); setAuthSession(null); navigate('sign-in-email'); };
   const add = (productId = 'dark-70') => setCartItems((items) => { const existing = items.find((item) => item.productId === productId); if (existing) return items.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item); return [...items, { productId, quantity: 1 }]; });
   const addProduct = (productId) => setCartItems((items) => { const existing = items.find((item) => item.productId === productId); if (existing) return items.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item); return [...items, { productId, quantity: 1 }]; });
   const updateCartQuantity = (productId, delta) => setCartItems((items) => items.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
@@ -33,6 +65,15 @@ function App() {
   useEffect(() => window.localStorage.setItem('choco-delight-language-v1', rtl ? 'ar' : 'en'), [rtl]);
   useEffect(() => window.localStorage.setItem('choco-delight-address-v1', address), [address]);
   useEffect(() => { fetchCatalog().then(setApiCatalog).catch(() => setApiCatalog(null)); }, []);
+  useEffect(() => {
+    const handlePopState = () => {
+      const nextRoute = routeFromLocation();
+      if (nextRoute.slug) setSelectedProductSlug(nextRoute.slug);
+      setPage(nextRoute.page);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   useEffect(() => { if (!authSession?.token) return undefined; const checkSession = () => { if (isAuthTokenExpired(authSession.token)) expireSession(); }; checkSession(); const interval = window.setInterval(checkSession, 30_000); window.addEventListener('focus', checkSession); return () => { window.clearInterval(interval); window.removeEventListener('focus', checkSession); }; }, [authSession?.token]);
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [page]);
   useEffect(() => {
@@ -42,31 +83,31 @@ function App() {
   if (showSplash) return <Splash />;
   return <div className={`${theme}${rtl ? ' dir-rtl' : ''} page-${page}`} dir={rtl ? 'rtl' : 'ltr'}>
     <div className="shell">
-      <Header dark={dark} rtl={rtl} currentPage={page} onTheme={(nextDark) => setDark(nextDark)} onLanguage={(nextRtl) => setRtl(nextRtl)} onHome={() => setPage('home')} onCategories={() => setPage('categories')} onMakers={() => setPage('maker-collections')} onGifts={() => setPage('category-browser')} onAccount={() => setPage(authSession ? 'account' : 'sign-in-email')} onCart={() => setPage('cart')} onOrders={() => setPage('orders')} onSettings={() => setPage('settings')} onAdmin={() => setPage('admin')} />
+      <Header dark={dark} rtl={rtl} currentPage={page} onTheme={(nextDark) => setDark(nextDark)} onLanguage={(nextRtl) => setRtl(nextRtl)} onHome={() => navigate('home')} onCategories={() => navigate('categories')} onMakers={() => navigate('maker-collections')} onGifts={() => navigate('category-browser')} onAccount={() => navigate(authSession ? 'account' : 'sign-in-email')} onCart={() => navigate('cart')} onOrders={() => navigate('orders')} onSettings={() => navigate('settings')} onAdmin={() => navigate('admin')} />
       <div key={page} className="route-view">
-      {page === 'home' && <LiveHome copy={copy} apiCatalog={apiCatalog} onProduct={openProduct} onCategories={() => setPage('categories')} onAccount={() => setPage(authSession ? 'account' : 'sign-in-email')} onCreateAccount={() => setPage('create-account')} />}
-      {page === 'categories' && <LiveCategories copy={copy} apiCatalog={apiCatalog} onBack={() => setPage('home')} onProduct={() => setPage('category-products')} />}
-      {page === 'product' && <Product copy={copy} slug={selectedProductSlug} onBack={() => setPage('home')} onAdd={add} />}
-      {page === 'cart' && <Cart rtl={rtl} apiCatalog={apiCatalog} items={cartItems} count={cart} onBack={() => setPage('home')} onCheckout={() => setPage('checkout')} onQuantityChange={updateCartQuantity} />}
-      {page === 'checkout' && <Checkout rtl={rtl} apiCatalog={apiCatalog} token={authSession?.token} address={address} items={cartItems} count={cart} onBack={() => setPage('cart')} onAddress={() => setPage('address')} onPayment={() => setPage('payment')} onSessionExpired={expireSession} onPlaceOrder={async () => { const order = await createOrder(authSession?.token || null, address, cartItems); if (!authSession?.token) { saveGuestOrder(order); setGuestOrder(order); } setSelectedOrder(order); setCartItems([]); setPage('order-received'); }} />}
-      {page === 'address' && <Address rtl={rtl} value={address} onBack={() => setPage('checkout')} onSave={(nextAddress) => { setAddress(nextAddress); setPage('checkout'); }} />}
-      {page === 'payment' && <Payment rtl={rtl} onBack={() => setPage('checkout')} />}
-      {page === 'category-browser' && <CategoryBrowser onBack={() => setPage('home')} onProducts={() => setPage('category-products')} />}
-      {page === 'category-products' && <LiveCategoryProducts rtl={rtl} apiCatalog={apiCatalog} onBack={() => setPage('categories')} onProduct={openProduct} onAdd={addProduct} />}
-      {page === 'sign-in-email' && <SignInEmail rtl={rtl} onBack={() => setPage('home')} onCreate={() => setPage('create-account')} onLogin={async (email, password) => { const data = await loginUser(email, password); saveAuthSession(data); setAuthSession(data); setPage('account'); }} />}
-      {page === 'sign-in-phone' && <SignInPhone rtl={rtl} onBack={() => setPage('home')} onEmail={() => setPage('sign-in-email')} />}
-      {page === 'create-account' && <CreateAccount rtl={rtl} onBack={() => setPage('sign-in-email')} onRegister={async (name, email, password) => { const data = await registerUser(name, email, password); saveAuthSession(data); setAuthSession(data); setPage('account'); }} />}
-      {page === 'orders' && <OrdersLocalized rtl={rtl} token={authSession?.token} guestOrder={guestOrder} onSessionExpired={expireSession} onBack={() => setPage('home')} onDetails={(order) => { setSelectedOrder(order); setPage('order-details'); }} />}
-      {page === 'order-details' && <OrderDetailsLocalized rtl={rtl} order={selectedOrder} onBack={() => setPage('orders')} />}
-      {page === 'account' && <AccountLocalized rtl={rtl} user={authSession?.user} onBack={() => setPage('home')} onOrders={() => setPage('orders')} onSettings={() => setPage('settings')} onLogout={() => { clearAuthSession(); setAuthSession(null); setPage('home'); }} />}
-      {page === 'settings' && <SettingsLocalized rtl={rtl} dark={dark} onTheme={setDark} onLanguage={setRtl} onBack={() => setPage('account')} />}
-      {page === 'loyalty' && <Loyalty rtl={rtl} token={authSession?.token} onSessionExpired={expireSession} onBack={() => setPage('home')} />}
-      {page === 'maker-collections' && <MakerCollections rtl={rtl} onBack={() => setPage('home')} onDetails={() => setPage('maker-details')} />}
-      {page === 'maker-details' && <MakerDetails rtl={rtl} onBack={() => setPage('maker-collections')} onProduct={() => setPage('product')} />}
-      {page === 'order-received' && <OrderReceivedLocalized rtl={rtl} order={selectedOrder} onHome={() => setPage('home')} onOrders={() => { if (selectedOrder) setSelectedOrder(selectedOrder); setPage('orders'); }} />}
-      {page === 'admin' && <AdminDashboardLocalized rtl={rtl} token={authSession?.token} onSessionExpired={expireSession} onSignIn={() => setPage('sign-in-email')} onBack={() => setPage('home')} />}
+      {page === 'home' && <LiveHome copy={copy} apiCatalog={apiCatalog} onProduct={openProduct} onCategories={() => navigate('categories')} onAccount={() => navigate(authSession ? 'account' : 'sign-in-email')} onCreateAccount={() => navigate('create-account')} />}
+      {page === 'categories' && <LiveCategories copy={copy} apiCatalog={apiCatalog} onBack={() => navigate('home')} onProduct={() => navigate('category-products')} />}
+      {page === 'product' && <Product copy={copy} slug={selectedProductSlug} onBack={() => navigate('home')} onAdd={add} />}
+      {page === 'cart' && <Cart rtl={rtl} apiCatalog={apiCatalog} items={cartItems} count={cart} onBack={() => navigate('home')} onCheckout={() => navigate('checkout')} onQuantityChange={updateCartQuantity} />}
+      {page === 'checkout' && <Checkout rtl={rtl} apiCatalog={apiCatalog} token={authSession?.token} address={address} items={cartItems} count={cart} onBack={() => navigate('cart')} onAddress={() => navigate('address')} onPayment={() => navigate('payment')} onSessionExpired={expireSession} onPlaceOrder={async () => { const order = await createOrder(authSession?.token || null, address, cartItems); if (!authSession?.token) { saveGuestOrder(order); setGuestOrder(order); } setSelectedOrder(order); setCartItems([]); navigate('order-received'); }} />}
+      {page === 'address' && <Address rtl={rtl} value={address} onBack={() => navigate('checkout')} onSave={(nextAddress) => { setAddress(nextAddress); navigate('checkout'); }} />}
+      {page === 'payment' && <Payment rtl={rtl} onBack={() => navigate('checkout')} />}
+      {page === 'category-browser' && <CategoryBrowser onBack={() => navigate('home')} onProducts={() => navigate('category-products')} />}
+      {page === 'category-products' && <LiveCategoryProducts rtl={rtl} apiCatalog={apiCatalog} onBack={() => navigate('categories')} onProduct={openProduct} onAdd={addProduct} />}
+      {page === 'sign-in-email' && <SignInEmail rtl={rtl} onBack={() => navigate('home')} onCreate={() => navigate('create-account')} onLogin={async (email, password) => { const data = await loginUser(email, password); saveAuthSession(data); setAuthSession(data); navigate('account'); }} />}
+      {page === 'sign-in-phone' && <SignInPhone rtl={rtl} onBack={() => navigate('home')} onEmail={() => navigate('sign-in-email')} />}
+      {page === 'create-account' && <CreateAccount rtl={rtl} onBack={() => navigate('sign-in-email')} onRegister={async (name, email, password) => { const data = await registerUser(name, email, password); saveAuthSession(data); setAuthSession(data); navigate('account'); }} />}
+      {page === 'orders' && <OrdersLocalized rtl={rtl} token={authSession?.token} guestOrder={guestOrder} onSessionExpired={expireSession} onBack={() => navigate('home')} onDetails={(order) => { setSelectedOrder(order); navigate('order-details', { orderId: order.orderNo || order.id }); }} />}
+      {page === 'order-details' && <OrderDetailsLocalized rtl={rtl} order={selectedOrder} onBack={() => navigate('orders')} />}
+      {page === 'account' && <AccountLocalized rtl={rtl} user={authSession?.user} onBack={() => navigate('home')} onOrders={() => navigate('orders')} onSettings={() => navigate('settings')} onLogout={() => { clearAuthSession(); setAuthSession(null); navigate('home'); }} />}
+      {page === 'settings' && <SettingsLocalized rtl={rtl} dark={dark} onTheme={setDark} onLanguage={setRtl} onBack={() => navigate('account')} />}
+      {page === 'loyalty' && <Loyalty rtl={rtl} token={authSession?.token} onSessionExpired={expireSession} onBack={() => navigate('home')} />}
+      {page === 'maker-collections' && <MakerCollections rtl={rtl} onBack={() => navigate('home')} onDetails={() => navigate('maker-details')} />}
+      {page === 'maker-details' && <MakerDetails rtl={rtl} onBack={() => navigate('maker-collections')} onProduct={openProduct} />}
+      {page === 'order-received' && <OrderReceivedLocalized rtl={rtl} order={selectedOrder} onHome={() => navigate('home')} onOrders={() => { if (selectedOrder) setSelectedOrder(selectedOrder); navigate('orders'); }} />}
+      {page === 'admin' && <AdminDashboardLocalized rtl={rtl} token={authSession?.token} onSessionExpired={expireSession} onSignIn={() => navigate('sign-in-email')} onBack={() => navigate('home')} />}
       </div>
-      <Footer page={page} cart={cart} rtl={rtl} onNavigate={setPage} />
+      <Footer page={page} cart={cart} rtl={rtl} onNavigate={navigate} />
     </div>
   </div>;
 }
