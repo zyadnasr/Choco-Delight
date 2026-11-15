@@ -21,14 +21,15 @@ async function main() {
     create: { slug: 'choco-delight', name: 'Choco Delight', tagline: 'Premium wholesale chocolate maker', description: 'Small-batch chocolate made with thoughtful ingredients for gifting, everyday moments, and retail partners.', image: 'chocolate-product-source.jpg', rating: 4.8 },
   });
   const products = [
-    ['dark-70', 'dark-bars', '70% Dark Chocolate Bars', 415, 500, 'chocolate-product-source.jpg', 4.8, '70%'],
-    ['sea-salt', 'dark-bars', 'Sea Salt Dark Chocolate', 440, null, 'dark-bars.png', 4.8, '72%'],
-    ['cocoa-nib', 'truffles', 'Cocoa Nib Truffles', 380, null, 'truffles.png', 4.7, '64%'],
-    ['classic-praline', 'praline-boxes', 'Classic Praline Box', 520, null, 'praline-box.png', 4.9, '55%'],
-    ['gift-box', 'gifts', 'Gift box', 440, null, 'gift-box.png', 4.8, '70%'],
+    { slug: 'dark-70', category: 'dark-bars', title: '70% Dark Chocolate Bars', price: 415, compareAt: 500, image: 'chocolate-product-source.jpg', rating: 4.8, cocoa: '70%', moq: 1, description: 'Dark chocolate bars with a balanced cocoa taste and smooth finish.', specifications: { format: 'Bars', cocoa: '70%', pack: 'Wholesale pack' } },
+    { slug: 'sea-salt', category: 'dark-bars', title: 'Sea Salt Dark Chocolate', price: 440, compareAt: null, image: 'dark-bars.png', rating: 4.8, cocoa: '72%', moq: 1, description: 'Deep dark chocolate finished with a clean sea salt note.', specifications: { format: 'Bars', cocoa: '72%', finish: 'Sea salt' } },
+    { slug: 'cocoa-nib', category: 'truffles', title: 'Cocoa Nib Truffles', price: 380, compareAt: null, image: 'truffles.png', rating: 4.7, cocoa: '64%', moq: 1, description: 'Soft chocolate truffles coated with toasted cocoa nibs.', specifications: { format: 'Truffles', cocoa: '64%', coating: 'Cocoa nibs' } },
+    { slug: 'classic-praline', category: 'praline-boxes', title: 'Classic Praline Box', price: 520, compareAt: null, image: 'praline-box.png', rating: 4.9, cocoa: '55%', moq: 1, description: 'A curated box of classic pralines for gifting and retail shelves.', specifications: { format: 'Box', cocoa: '55%', pieces: 12 } },
+    { slug: 'gift-box', category: 'gifts', title: 'Gift box', price: 440, compareAt: null, image: 'gift-box.png', rating: 4.8, cocoa: '70%', moq: 1, description: 'A ready-to-gift chocolate box for thoughtful moments.', specifications: { format: 'Gift box', cocoa: '70%', ribbon: true } },
   ] as const;
-  for (const [slug, category, title, price, compareAt, image, rating, cocoa] of products) {
-    await prisma.product.upsert({ where: { slug }, update: { title, price, compareAt, image, rating, cocoa, categoryId: categoryMap.get(category)!, makerId: maker.id }, create: { slug, title, price, compareAt, image, rating, cocoa, categoryId: categoryMap.get(category)!, makerId: maker.id } });
+  for (const product of products) {
+    const { category, ...data } = product;
+    await prisma.product.upsert({ where: { slug: product.slug }, update: { ...data, categoryId: categoryMap.get(category)!, makerId: maker.id }, create: { ...data, categoryId: categoryMap.get(category)!, makerId: maker.id } });
   }
   const passwordHash = await bcrypt.hash('ChangeMe123!', 10);
   await prisma.user.upsert({ where: { email: 'admin@chocodelight.local' }, update: {}, create: { name: 'Choco Delight Admin', email: 'admin@chocodelight.local', passwordHash, role: 'ADMIN' } });

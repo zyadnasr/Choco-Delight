@@ -222,6 +222,8 @@ app.post('/api/orders', optionalAuth, async (req, res, next) => {
     const byKey = new Map(products.flatMap((product) => [[product.id, product], [product.slug, product]]));
     const lineItems = input.items.map((item) => ({ ...item, product: byKey.get(item.productId) })).filter((item) => item.product);
     if (lineItems.length !== input.items.length) return res.status(400).json({ error: 'One or more products are unavailable' });
+    const belowMinimum = lineItems.find((item) => item.quantity < item.product!.moq);
+    if (belowMinimum) return res.status(400).json({ error: `Minimum quantity for ${belowMinimum.product!.title} is ${belowMinimum.product!.moq}` });
     const total = lineItems.reduce((sum, item) => sum + item.product!.price * item.quantity, 0);
     const deliveryFee = deliveryConfig.freeDeliveryThreshold !== null && total >= deliveryConfig.freeDeliveryThreshold ? 0 : deliveryConfig.deliveryFee;
     const order = await prisma.order.create({ data: { orderNo: `CD-${Date.now().toString().slice(-6)}`, userId: (req as any).user?.sub ?? null, address: input.address, paymentMethod: input.paymentMethod, deliveryFee, total: total + deliveryFee, items: { create: lineItems.map((item) => ({ productId: item.product!.id, quantity: item.quantity, unitPrice: item.product!.price })) } }, include: { items: { include: { product: true } } } });

@@ -1,0 +1,3 @@
+ALTER TABLE "Product" ADD COLUMN "description" TEXT;
+ALTER TABLE "Product" ADD COLUMN "moq" INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE "Product" ADD COLUMN "specifications" JSONB;

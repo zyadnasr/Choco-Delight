@@ -109,6 +109,9 @@ model Product {
   image      String
   rating     Float     @default(0)
   cocoa      String?
+  description String?
+  moq        Int      @default(1)
+  specifications Json?
   active     Boolean   @default(true)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
