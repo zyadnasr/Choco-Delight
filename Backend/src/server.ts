@@ -6,7 +6,18 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 
-export const prisma = new PrismaClient();
+function serverlessDatabaseUrl() {
+  const configuredUrl = process.env.DATABASE_URL;
+  if (!configuredUrl || process.env.NODE_ENV === 'test') return configuredUrl;
+  const databaseUrl = new URL(configuredUrl);
+  if (!databaseUrl.searchParams.has('connection_limit')) databaseUrl.searchParams.set('connection_limit', '1');
+  return databaseUrl.toString();
+}
+
+const prismaOptions = process.env.DATABASE_URL && process.env.NODE_ENV !== 'test'
+  ? { datasources: { db: { url: serverlessDatabaseUrl() } } }
+  : undefined;
+export const prisma = new PrismaClient(prismaOptions);
 export const app = express();
 export default app;
 const port = Number(process.env.PORT || 4000);
